@@ -1,5 +1,42 @@
-//COWTODO: Add header.
-//COWTODO: Add the info files...
+//----------------------------------------------------------------------------//
+//               █      █                                                     //
+//               ████████                                                     //
+//             ██        ██                                                   //
+//            ███  █  █  ███        bin2header.cpp                            //
+//            █ █        █ █        Bin2Header                                //
+//             ████████████                                                   //
+//           █              █       Copyright (c) 2016                        //
+//          █     █    █     █      AmazingCow - www.AmazingCow.com           //
+//          █     █    █     █                                                //
+//           █              █       N2OMatt - n2omatt@amazingcow.com          //
+//             ████████████         www.amazingcow.com/n2omatt                //
+//                                                                            //
+//                  This software is licensed as GPLv3                        //
+//                 CHECK THE COPYING FILE TO MORE DETAILS                     //
+//                                                                            //
+//    Permission is granted to anyone to use this software for any purpose,   //
+//   including commercial applications, and to alter it and redistribute it   //
+//               freely, subject to the following restrictions:               //
+//                                                                            //
+//     0. You **CANNOT** change the type of the license.                      //
+//     1. The origin of this software must not be misrepresented;             //
+//        you must not claim that you wrote the original software.            //
+//     2. If you use this software in a product, an acknowledgment in the     //
+//        product IS HIGHLY APPRECIATED, both in source and binary forms.     //
+//        (See opensource.AmazingCow.com/acknowledgment.html for details).    //
+//        If you will not acknowledge, just send us a email. We'll be         //
+//        *VERY* happy to see our work being used by other people. :)         //
+//        The email is: acknowledgment_opensource@AmazingCow.com              //
+//     3. Altered source versions must be plainly marked as such,             //
+//        and must notbe misrepresented as being the original software.       //
+//     4. This notice may not be removed or altered from any source           //
+//        distribution.                                                       //
+//     5. Most important, you must have fun. ;)                               //
+//                                                                            //
+//      Visit opensource.amazingcow.com for more open-source projects.        //
+//                                                                            //
+//                                  Enjoy :)                                  //
+//----------------------------------------------------------------------------//
 
 
 //std
@@ -51,7 +88,7 @@ void write_include_guard_close(FILE *file, options_t *options);
 void write_array_open         (FILE *file, options_t *options);
 void write_array_close        (FILE *file, options_t *options);
 void write_array_constant     (FILE *file, options_t *options, size_t size);
-void write_byte               (FILE *file, UCHAR value);
+void write_byte               (FILE *file, options_t *options, UCHAR value);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -82,14 +119,14 @@ int main(int argc, const char *argv[])
     write_array_open(fout, &options);
 
 
-    int    fin_size = get_file_size(fin);
+    size_t fin_size = get_file_size(fin);
     UCHAR *buf      = (UCHAR *)malloc(sizeof(UCHAR) * options.block_size);
 
     size_t read_count = 0;
     while((read_count = fread(buf, sizeof(unsigned char), options.block_size, fin)) > 0)
     {
         for(int i = 0; i < read_count; ++i)
-            write_byte(fout, buf[i]);
+            write_byte(fout, &options, buf[i]);
     }
 
     write_array_close(fout, &options);
@@ -128,10 +165,13 @@ const char *create_header_str(options_t *options)
     size_t fmt_str_size    = strlen(fmt_str);
     size_t array_name_size = strlen(options->array_name);
 
-    char *header_str = (char *)malloc(sizeof(char *) * (fmt_str_size + array_name_size + 1));
+    //Create the header_str with the format and array name.
+    char *header_str = (char *)malloc(sizeof(char) * (fmt_str_size + array_name_size + 1));
     sprintf(header_str, fmt_str, options->array_name);
 
-    //COWTODO: Make the header_str upper case.
+    //Make uppercase.
+    for(int i = 0; i < strlen(header_str); ++i)
+        header_str[i] = toupper(header_str[i]);
 
     return header_str;
 }
@@ -140,7 +180,6 @@ const char *create_header_str(options_t *options)
 //Parse
 void parse_cmd_options(int argc, const char *argv[], options_t *options)
 {
-
     //COWTODO: Implement the parsing...
     options->in_filename  = "image.png";
     options->out_filename = "out.txt";
@@ -174,7 +213,11 @@ void write_include_guard_open(FILE *file, options_t *options)
 
 void write_include_guard_close(FILE *file, options_t *options)
 {
-    fprintf(file, "#endif \n");
+    const char *header_str = create_header_str(options);
+    
+    fprintf(file, "#endif // defined( %s ) //\n", header_str);
+    
+    free((void *)header_str);
 }
 
 void write_array_open(FILE *file, options_t *options)
@@ -184,7 +227,7 @@ void write_array_open(FILE *file, options_t *options)
 
 void write_array_close(FILE *file, options_t *options)
 {
-    fprintf(file, "};\n\n");
+    fprintf(file, "\n}; // %s\n\n", options->array_name);
 }
 
 void write_array_constant(FILE *file, options_t *options, size_t size)
@@ -192,16 +235,35 @@ void write_array_constant(FILE *file, options_t *options, size_t size)
     fprintf(file, "static const int kSize_%s = %zu;\n\n", options->array_name, size);
 }
 
-void write_byte(FILE *file, UCHAR value)
+void write_byte(FILE *file, options_t *options, UCHAR value)
 {
-    //COWTODO: Implement this correctly... (Get the indent_size, don't let it pass the 80 cols, etc.)
-    static int v = 0;
-    if(v == 8)
+    //Helper constants.
+    const char * value_fmt_str      = "\\x%02x, ";
+    const int    value_fmt_str_size = 6;
+    const int    columns_size       = 80;
+    const int    max_value_count    = ((columns_size - value_fmt_str_size) / options->indent_size) + 1;
+    
+    static int curr_value_count = 0; //Static to preseve the state between calls.
+    
+    //Print the new lines when we reach the right most column of file.
+    if(curr_value_count >= max_value_count)
     {
-        fprintf(file, "\n   ");
-        v = 0;
+        fprintf(file, "\n");
+        curr_value_count = 0;
     }
-
-    fprintf(file, "\\x%02x, ", value);
-    ++v;
+    
+    //Print the indentation.
+    if(curr_value_count == 0)
+    {
+        char spaces_str[options->indent_size + 2];
+        memset(spaces_str, ' ', options->indent_size);
+        spaces_str[options->indent_size] = '\0';
+        
+        fprintf(file, "%s", spaces_str);
+    }
+    
+    
+    fprintf(file, value_fmt_str, value);
+    
+    ++curr_value_count;
 }
