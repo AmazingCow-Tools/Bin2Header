@@ -214,9 +214,9 @@ void write_include_guard_open(FILE *file, options_t *options)
 void write_include_guard_close(FILE *file, options_t *options)
 {
     const char *header_str = create_header_str(options);
-    
+
     fprintf(file, "#endif // defined( %s ) //\n", header_str);
-    
+
     free((void *)header_str);
 }
 
@@ -242,28 +242,28 @@ void write_byte(FILE *file, options_t *options, UCHAR value)
     const int    value_fmt_str_size = 6;
     const int    columns_size       = 80;
     const int    max_value_count    = ((columns_size - value_fmt_str_size) / options->indent_size) + 1;
-    
+
     static int curr_value_count = 0; //Static to preseve the state between calls.
-    
+
     //Print the new lines when we reach the right most column of file.
     if(curr_value_count >= max_value_count)
     {
         fprintf(file, "\n");
         curr_value_count = 0;
     }
-    
+
     //Print the indentation.
     if(curr_value_count == 0)
     {
         char spaces_str[options->indent_size + 2];
         memset(spaces_str, ' ', options->indent_size);
         spaces_str[options->indent_size] = '\0';
-        
+
         fprintf(file, "%s", spaces_str);
     }
-    
-    
+
+
     fprintf(file, value_fmt_str, value);
-    
+
     ++curr_value_count;
 }
