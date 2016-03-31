@@ -114,14 +114,16 @@ int main(int argc, const char *argv[])
         exit(1);
     }
 
-    write_header(fout, &options);
+    //Write the start info...
+    write_header            (fout, &options);
     write_include_guard_open(fout, &options);
-    write_array_open(fout, &options);
+    write_array_open        (fout, &options);
 
 
     size_t fin_size = get_file_size(fin);
     UCHAR *buf      = (UCHAR *)malloc(sizeof(UCHAR) * options.block_size);
 
+    //Read the binary file and write the info to header...
     size_t read_count = 0;
     while((read_count = fread(buf, sizeof(unsigned char), options.block_size, fin)) > 0)
     {
@@ -129,9 +131,14 @@ int main(int argc, const char *argv[])
             write_byte(fout, &options, buf[i]);
     }
 
-    write_array_close(fout, &options);
-    write_array_constant(fout, &options, fin_size);
+    //Write the end info...
+    write_array_close        (fout, &options);
+    write_array_constant     (fout, &options, fin_size);
     write_include_guard_close(fout, &options);
+
+    //Close the FILEs.
+    fclose(fin);
+    fclose(fout);
 }
 
 
