@@ -38,13 +38,33 @@
 //                                  Enjoy :)                                  //
 //----------------------------------------------------------------------------//
 
-
 //std
+#include <ctype.h>
+#include <getopt.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string.h>
 #include <sys/stat.h>
-#include <ctype.h>
+#include <unistd.h>
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MACROS                                                                     //
+////////////////////////////////////////////////////////////////////////////////
+#define B2H_SAFE_FREE(_ptr_) do { \
+    if(_ptr_) {                   \
+        free((void*)_ptr_);       \
+        _ptr_ = NULL;             \
+    }                             \
+} while(0);
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Constants                                                                  //
+////////////////////////////////////////////////////////////////////////////////
+#define kBufferSize_ErrorMessage 1024
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -57,13 +77,13 @@ typedef struct _options_t
 {
     bool verbose;
 
-    const char *in_filename;
-    const char *out_filename;
+    char *in_filename;
+    char *out_filename;
 
     int block_size;
     int indent_size;
 
-    const char *array_name;
+    char *array_name;
 
 } options_t;
 
@@ -71,15 +91,23 @@ typedef struct _options_t
 ////////////////////////////////////////////////////////////////////////////////
 // Function Declarations                                                      //
 ////////////////////////////////////////////////////////////////////////////////
+//Options init/clean
+void options_init (options_t *options);
+void options_validate(options_t *options);
+void options_clean(options_t *options);
+
+
 //Prints
 void print_help();
 void print_version();
+void print_error(const char *msg, ...);
 
 //Helpers
 size_t get_file_size(FILE *file);
 
 //Parse
-void parse_cmd_options(int argc, const char *argv[], options_t *options);
+void parse_cmd_options(int argc, char *argv[], options_t *options);
+bool b2h_atoi(const char *str, int *value_ptr);
 
 //Write
 void write_header             (FILE *file, options_t *options);
@@ -97,8 +125,16 @@ void write_byte               (FILE *file, options_t *options, UCHAR value);
 int main(int argc, const char *argv[])
 {
     options_t options;
-    parse_cmd_options(argc, argv, &options);
+    parse_cmd_options(argc, (char **)argv, &options);
 
+    printf("verbose      : %d\n", options.verbose);
+    printf("block size   : %d\n", options.block_size);
+    printf("indent size  : %d\n", options.indent_size);
+    printf("in filename  : %s\n", options.in_filename);
+    printf("out filename : %s\n", options.out_filename);
+    printf("array name   : %s\n", options.array_name);
+
+    return 0;
     FILE *fin  = NULL;
     FILE *fout = NULL;
 
@@ -136,6 +172,9 @@ int main(int argc, const char *argv[])
     write_array_constant     (fout, &options, fin_size);
     write_include_guard_close(fout, &options);
 
+    //Clean up.
+    options_clean(&options);
+
     //Close the FILEs.
     fclose(fin);
     fclose(fout);
@@ -145,15 +184,92 @@ int main(int argc, const char *argv[])
 ////////////////////////////////////////////////////////////////////////////////
 // Function Definitions                                                       //
 ////////////////////////////////////////////////////////////////////////////////
+//Options init/clean
+void options_init(options_t *options)
+{
+    options->verbose = false;
+
+    options->in_filename  = NULL;
+    options->out_filename = NULL;
+
+    options->block_size   = -1;
+    options->indent_size  = -1;
+
+    options->array_name = NULL;
+}
+void options_validate(options_t *options)
+{
+    /* COWTODO:
+       Bit of shame - I do not know
+       how to make path manipulations on C
+       like in os.path and os packages of python
+       Since I haven't internet connection now
+       Let it for later */
+}
+void options_clean(options_t *options)
+{
+    B2H_SAFE_FREE(options->in_filename);
+    B2H_SAFE_FREE(options->out_filename);
+    B2H_SAFE_FREE(options->array_name);
+}
+
+
 //Prints
-void print_help()
+void print_help(int exit_code)
 {
-    //COWTODO: Implement.
+    printf("Usage: \n \
+  bin2header [-hv] [-V] [-ib <size>] [-a <name>] [-o <filename>] <input-filename> \n\
+\n\
+Options: \n\
+  *-h            : Show this screen. \n\
+  *-v            : Show app version and copyright. \n\
+   -V            : Enable Verbose mode. \n\
+   -i <size>     : Indentation in spaces. \n\
+   -b <size>     : How many block will be read each time. \n\
+                   Greater block size increases speed in expense of memory. \n\
+   -a <name>     : The name of resulting array. \n\
+                   If not set will be the same of output filename. \n\
+   -o <filename> : The name of output file. \n\
+                   If not set will be the same of input filename with the '.h' extension. \n\
+\n\
+Notes:\n\
+  In (-a <name>) all characters that doesn't make a valid C identifier will \n\
+  be replaced with '_' (underscore) character.\n\
+\n\
+  Options marked with * are exclusive, i.e. the bin2header will run that \n\
+  and exit successfully after the operation.\n\n");
+
+    if(exit_code >= 0)
+        exit(exit_code);
 }
-void print_version()
+void print_version(int exit_code)
 {
-    //COWTODO: Implement.
+    printf("bin2header - 0.1.0 - N2OMatt <n2omatt@amazingcow.com> \n\
+Copyright (c) 2016 - Amazing Cow \n\
+This is a free software (GPLv3) - Share/Hack it \n\
+Check opensource.amazingcow.com for more :)\n\n");
+
+    if(exit_code >= 0)
+        exit(exit_code);
 }
+
+void print_error(const char *msg, ...)
+{
+    char buffer[kBufferSize_ErrorMessage];
+
+    /* Reset the buffer */
+    memset(buffer, 0, kBufferSize_ErrorMessage);
+
+    /* Build the buffer with the variadic args list */
+    va_list ap;
+    va_start(ap, msg);
+    vsnprintf(buffer, kBufferSize_ErrorMessage, msg, ap);
+    va_end(ap);
+
+    fprintf(stderr, "bin2header: %s\n", buffer);
+    exit(1);
+}
+
 
 
 //Helpers
@@ -185,16 +301,89 @@ const char *create_header_str(options_t *options)
 
 
 //Parse
-void parse_cmd_options(int argc, const char *argv[], options_t *options)
+void parse_cmd_options(int argc, char *argv[], options_t *options)
 {
-    //COWTODO: Implement the parsing...
-    options->in_filename  = "image.png";
-    options->out_filename = "out.txt";
+    //h - help.
+    //v - version.
+    //V - verbose.
+    //a - array name.
+    //o - output file.
+    //b - block size.
+    //i - indent size.
+    const char *options_str = "hvVa:o:b:i:";
 
+    //Set the defaults.
+    options->verbose     = false;
     options->block_size  = 32;
     options->indent_size = 4;
 
-    options->array_name = "array";
+    //Parse the options...
+    char curr_opt;
+    while((curr_opt = getopt(argc, argv, options_str)) != -1)
+    {
+        switch(curr_opt)
+        {
+            //Help and Version.
+            case 'h': print_help(0);    break;
+            case 'v': print_version(0); break;
+
+            //Verbose.
+            case 'V' : options->verbose = true; break;
+
+            //Block and Indent size.
+            case 'b' :
+                if(!b2h_atoi(optarg, &options->block_size))
+                {
+                    print_error("error while parsing -b flag - invalid number %s",
+                                optarg);
+                }
+                break;
+            case 'i' :
+                if(!b2h_atoi(optarg, &options->indent_size))
+                {
+                     print_error("error while parsing -i flag - invalid number %s",
+                                 optarg);
+                }
+                break;
+
+            //Array and Output names.
+            case 'a' :
+                options->array_name = malloc(sizeof(char) * strlen(optarg));
+                strcpy(options->array_name, optarg);
+                break;
+
+            case 'o' :
+                options->out_filename = malloc(sizeof(char) * strlen(optarg));
+                strcpy(options->out_filename, optarg);
+                break;
+
+            //Invalid options...
+            default :
+                print_error("invalid flag %c", curr_opt);
+                break;
+        }
+    }
+
+    //Check if user gave the input file.
+    if(optind >= argc)
+        print_error("missing input binary filename.");
+
+    //Set the input filename.
+    options->in_filename = malloc(sizeof(char) * strlen(argv[optind]));
+    strcpy(options->in_filename, argv[optind]);
+}
+
+bool b2h_atoi(const char *str, int *value_ptr)
+{
+    int s = strlen(str);
+    for(int i = 0; i < s; ++i)
+    {
+        if(!isdigit(str[i]))
+            return false;
+    }
+
+    *value_ptr = atoi(str);
+    return true;
 }
 
 
