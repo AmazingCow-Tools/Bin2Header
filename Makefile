@@ -39,8 +39,16 @@
 ##----------------------------------------------------------------------------##
 
 
-install:
-	gcc bin2header.c -o bin2header
+all: install
+
+clean:
+	rm -rf ./bin
+
+bin: clean
+	mkdir -p ./bin
+	gcc bin2header.c -o ./bin/bin2header
+
+install: bin
 	mv bin2header /usr/local/bin/bin2header
 
 uninstall:
