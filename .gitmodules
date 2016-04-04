@@ -1,0 +1,3 @@
+[submodule "lib/libstdcow"]
+	path = lib/libstdcow
+	url = https://github.com/AmazingCow-Libs/libstdcow.git
