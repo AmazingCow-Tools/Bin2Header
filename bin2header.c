@@ -2,7 +2,7 @@
 //               █      █                                                     //
 //               ████████                                                     //
 //             ██        ██                                                   //
-//            ███  █  █  ███        bin2header.cpp                            //
+//            ███  █  █  ███        bin2header.c                              //
 //            █ █        █ █        Bin2Header                                //
 //             ████████████                                                   //
 //           █              █       Copyright (c) 2016                        //
@@ -41,6 +41,8 @@
 //std
 #include <ctype.h>
 #include <getopt.h>
+#include <libgen.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,24 +50,23 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
+//stdcow
+#include "cowlog.h"
+#include "cowmalloc.h"
+#include "cowpath.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 // MACROS                                                                     //
 ////////////////////////////////////////////////////////////////////////////////
-#define B2H_SAFE_FREE(_ptr_) do { \
-    if(_ptr_) {                   \
-        free((void*)_ptr_);       \
-        _ptr_ = NULL;             \
-    }                             \
-} while(0);
-
+#define ONLY_IN_VERBOSE(_code_) \
+    if(options.verbose) {       \
+        { _code_ }              \
+    }
 
 ////////////////////////////////////////////////////////////////////////////////
 // Constants                                                                  //
 ////////////////////////////////////////////////////////////////////////////////
 #define kBufferSize_ErrorMessage 1024
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // Types                                                                      //
@@ -101,6 +102,7 @@ void options_clean(options_t *options);
 void print_help();
 void print_version();
 void print_error(const char *msg, ...);
+void print_verbose(const options_t *options);
 
 //Helpers
 size_t get_file_size(FILE *file);
@@ -125,16 +127,22 @@ void write_byte               (FILE *file, options_t *options, UCHAR value);
 int main(int argc, const char *argv[])
 {
     options_t options;
+    options_init(&options);
+
     parse_cmd_options(argc, (char **)argv, &options);
 
-    printf("verbose      : %d\n", options.verbose);
-    printf("block size   : %d\n", options.block_size);
-    printf("indent size  : %d\n", options.indent_size);
-    printf("in filename  : %s\n", options.in_filename);
-    printf("out filename : %s\n", options.out_filename);
-    printf("array name   : %s\n", options.array_name);
+    options_validate(&options);
 
-    return 0;
+    ONLY_IN_VERBOSE(
+        COW_PRINT("verbose      : %d", options.verbose);
+        COW_PRINT("block size   : %d", options.block_size);
+        COW_PRINT("indent size  : %d", options.indent_size);
+        COW_PRINT("in filename  : %s", options.in_filename);
+        COW_PRINT("out filename : %s", options.out_filename);
+        COW_PRINT("array name   : %s", options.array_name);
+    );
+
+    //Init the input and output files...
     FILE *fin  = NULL;
     FILE *fout = NULL;
 
@@ -150,6 +158,7 @@ int main(int argc, const char *argv[])
         exit(1);
     }
 
+
     //Write the start info...
     write_header            (fout, &options);
     write_include_guard_open(fout, &options);
@@ -157,7 +166,7 @@ int main(int argc, const char *argv[])
 
 
     size_t fin_size = get_file_size(fin);
-    UCHAR *buf      = (UCHAR *)malloc(sizeof(UCHAR) * options.block_size);
+    UCHAR *buf      = COW_MALLOC(sizeof(UCHAR) * options.block_size);
 
     //Read the binary file and write the info to header...
     size_t read_count = 0;
@@ -184,7 +193,7 @@ int main(int argc, const char *argv[])
 ////////////////////////////////////////////////////////////////////////////////
 // Function Definitions                                                       //
 ////////////////////////////////////////////////////////////////////////////////
-//Options init/clean
+//Options init / clean
 void options_init(options_t *options)
 {
     options->verbose = false;
@@ -197,20 +206,85 @@ void options_init(options_t *options)
 
     options->array_name = NULL;
 }
+
 void options_validate(options_t *options)
 {
-    /* COWTODO:
-       Bit of shame - I do not know
-       how to make path manipulations on C
-       like in os.path and os packages of python
-       Since I haven't internet connection now
-       Let it for later */
+    //User didn't pass the output filename.
+    //So copy the input filename and replace the
+    //"possible" extension with a .h extension
+    if(!options->out_filename)
+    {
+        char *filename;
+        char *ext;
+        int   dot_index;
+
+        dot_index = cow_path_splitext(options->in_filename,
+                                      &filename,
+                                      &ext);
+
+        //Check if output filename isn't a directory.
+        int filename_size = strlen(filename);
+        if(filename[filename_size - 1] == '/')
+        {
+            //Don't bother with the filename and ext string
+            //We gonna fail anyway, don't need dealloc them...
+            print_error("output filename cannot be a directory (%s)", filename);
+        }
+
+        //The 3 is for the .h\0
+        options->out_filename = COW_MALLOC(sizeof(char) * filename_size + 3);
+        strcpy(options->out_filename, filename);
+        strcat(options->out_filename, ".h");
+
+        COW_FREE_NULL(filename);
+        COW_SAFE_FREE_NULL(ext);
+    }
+
+    //Check if output filename isn't a directory.
+    if(options->out_filename[strlen(options->out_filename) -1] == '/')
+    {
+        print_error("output filename cannot be a directory (%s)",
+                    options->out_filename);
+    }
+
+
+    //User didn't pass the array name
+    //So copy the output filename and gets only the filename part.
+    if(!options->array_name)
+    {
+        char *head;
+        char *tail;
+        char *root;
+        char *ext;
+
+        cow_path_split(options->out_filename, &head, &tail);
+        cow_path_splitext(tail, &root, &ext);
+
+        options->array_name = COW_MALLOC(sizeof(char) * strlen(root) + 1);
+        strcpy(options->array_name, root);
+
+        COW_SAFE_FREE_NULL(head);
+        COW_SAFE_FREE_NULL(tail);
+        COW_SAFE_FREE_NULL(root);
+        COW_SAFE_FREE_NULL(ext);
+    }
+
+    //Clean up the array name to make it contains only valid
+    //characters in C identifier.
+    for(int i = 0; i < strlen(options->array_name); ++i)
+    {
+        char c = options->array_name[i];
+        //COWTODO: Add the other chars...
+        if(c == '.')
+            options->array_name[i] = '_';
+    }
 }
+
 void options_clean(options_t *options)
 {
-    B2H_SAFE_FREE(options->in_filename);
-    B2H_SAFE_FREE(options->out_filename);
-    B2H_SAFE_FREE(options->array_name);
+    COW_FREE_NULL(options->in_filename);
+    COW_FREE_NULL(options->out_filename);
+    COW_FREE_NULL(options->array_name);
 }
 
 
@@ -242,6 +316,7 @@ Notes:\n\
     if(exit_code >= 0)
         exit(exit_code);
 }
+
 void print_version(int exit_code)
 {
     printf("bin2header - 0.1.0 - N2OMatt <n2omatt@amazingcow.com> \n\
@@ -270,8 +345,6 @@ void print_error(const char *msg, ...)
     exit(1);
 }
 
-
-
 //Helpers
 size_t get_file_size(FILE *file)
 {
@@ -289,7 +362,8 @@ const char *create_header_str(options_t *options)
     size_t array_name_size = strlen(options->array_name);
 
     //Create the header_str with the format and array name.
-    char *header_str = (char *)malloc(sizeof(char) * (fmt_str_size + array_name_size + 1));
+    char *header_str = COW_MALLOC(sizeof(char) *
+                                 (fmt_str_size + array_name_size + 1));
     sprintf(header_str, fmt_str, options->array_name);
 
     //Make uppercase.
@@ -348,18 +422,19 @@ void parse_cmd_options(int argc, char *argv[], options_t *options)
 
             //Array and Output names.
             case 'a' :
-                options->array_name = malloc(sizeof(char) * strlen(optarg));
+                options->array_name = COW_MALLOC(sizeof(char) * strlen(optarg));
                 strcpy(options->array_name, optarg);
                 break;
 
             case 'o' :
-                options->out_filename = malloc(sizeof(char) * strlen(optarg));
+                //Copy the out_filename from getopt's optarg.
+                options->out_filename = COW_MALLOC(sizeof(char) * strlen(optarg));
                 strcpy(options->out_filename, optarg);
                 break;
 
             //Invalid options...
             default :
-                print_error("invalid flag %c", curr_opt);
+                exit(1);
                 break;
         }
     }
@@ -369,7 +444,8 @@ void parse_cmd_options(int argc, char *argv[], options_t *options)
         print_error("missing input binary filename.");
 
     //Set the input filename.
-    options->in_filename = malloc(sizeof(char) * strlen(argv[optind]));
+    //Copy the in_filename from argv.
+    options->in_filename = COW_MALLOC(sizeof(char) * strlen(argv[optind]));
     strcpy(options->in_filename, argv[optind]);
 }
 
@@ -434,12 +510,12 @@ void write_array_constant(FILE *file, options_t *options, size_t size)
 void write_byte(FILE *file, options_t *options, UCHAR value)
 {
     //Helper constants.
-    const char * value_fmt_str      = "\\x%02x, ";
-    const int    value_fmt_str_size = 6;
-    const int    columns_size       = 80;
-    const int    max_value_count    = ((columns_size - value_fmt_str_size) / options->indent_size) + 1;
+    const char *value_fmt_str      = "\\x%02x, ";
+    const int   value_fmt_str_size = 6; //\xFF,[SPACE]
+    const int   columns_size       = 80;
+    const int   max_value_count    = ((columns_size - options->indent_size) / value_fmt_str_size);
 
-    static int curr_value_count = 0; //Static to preseve the state between calls.
+    static int curr_value_count = 0; //Static to preserve the state between calls.
 
     //Print the new lines when we reach the right most column of file.
     if(curr_value_count >= max_value_count)
