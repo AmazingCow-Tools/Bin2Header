@@ -67,6 +67,9 @@
 // Constants                                                                  //
 ////////////////////////////////////////////////////////////////////////////////
 #define kBufferSize_ErrorMessage 1024
+#define kVersion_Major    0
+#define kVersion_Minor    0
+#define kVersion_Revision 1
 
 ////////////////////////////////////////////////////////////////////////////////
 // Types                                                                      //
@@ -318,10 +321,13 @@ Notes:\n\
 
 void print_version(int exit_code)
 {
-    printf("bin2header - 0.1.0 - N2OMatt <n2omatt@amazingcow.com> \n\
+    printf("bin2header - %d.%d.%d - N2OMatt <n2omatt@amazingcow.com> \n\
 Copyright (c) 2016 - Amazing Cow \n\
 This is a free software (GPLv3) - Share/Hack it \n\
-Check opensource.amazingcow.com for more :)\n\n");
+Check opensource.amazingcow.com for more :)\n\n",
+    kVersion_Major,
+    kVersion_Minor,
+    kVersion_Revision);
 
     if(exit_code >= 0)
         exit(exit_code);
