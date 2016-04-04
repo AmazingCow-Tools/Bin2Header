@@ -93,16 +93,15 @@ typedef struct _options_t
 // Function Declarations                                                      //
 ////////////////////////////////////////////////////////////////////////////////
 //Options init/clean
-void options_init (options_t *options);
+void options_init    (options_t *options);
 void options_validate(options_t *options);
-void options_clean(options_t *options);
+void options_clean   (options_t *options);
 
 
 //Prints
-void print_help();
+void print_help   ();
 void print_version();
-void print_error(const char *msg, ...);
-void print_verbose(const options_t *options);
+void print_error  (const char *msg, ...);
 
 //Helpers
 size_t get_file_size(FILE *file);
@@ -127,10 +126,10 @@ void write_byte               (FILE *file, options_t *options, UCHAR value);
 int main(int argc, const char *argv[])
 {
     options_t options;
+
+    //Init / Parse / Validate.
     options_init(&options);
-
     parse_cmd_options(argc, (char **)argv, &options);
-
     options_validate(&options);
 
     ONLY_IN_VERBOSE(
