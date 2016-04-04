@@ -42,15 +42,23 @@
 all: install
 
 clean:
-	rm -rf ./bin
+	@ rm -rf ./bin
 
-bin: clean
-	mkdir -p ./bin
-	gcc bin2header.c -o ./bin/bin2header
+stdcow:
+	@ cd ./lib/libstdcow && make clean && make obj
+
+bin: clean stdcow
+	@ mkdir -p ./bin
+	@ gcc -o ./bin/bin2header         \
+	      -I ./lib/libstdcow/include/ \
+	         ./bin2header.c           \
+	         ./lib/libstdcow/obj/*.o
+
+
 
 install: bin
-	mv bin2header /usr/local/bin/bin2header
+	@ mv bin2header /usr/local/bin/bin2header
 
 uninstall:
-	rm -f /usr/local/bin/bin2header
+	@ rm -f /usr/local/bin/bin2header
 
