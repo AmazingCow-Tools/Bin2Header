@@ -38,6 +38,11 @@
 //                                  Enjoy :)                                  //
 //----------------------------------------------------------------------------//
 
+//COWTODO: #1 - Add a option to specify the max columns to write \
+//              If we can write all bytes in only one line the file size is reduced.
+//COWTODO: #2 - The verbose mode is very nonsense today - Add more util output.
+//COWTODO: #3 - Use gnu getopt_long (This is the default in other AmazingCow programs).
+
 //std
 #include <ctype.h>
 #include <getopt.h>

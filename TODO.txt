@@ -1,4 +1,0 @@
-#1 - Add a option to specify the max columns to write
-     If we can write all bytes in only one line the file size is reduced.
-
-#2 - The verbose mode is very nonsense today - Add more util output.
