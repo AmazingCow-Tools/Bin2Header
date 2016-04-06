@@ -74,7 +74,7 @@
 #define kBufferSize_ErrorMessage 1024
 #define kVersion_Major    0
 #define kVersion_Minor    0
-#define kVersion_Revision 1
+#define kVersion_Revision 2
 
 ////////////////////////////////////////////////////////////////////////////////
 // Types                                                                      //
@@ -520,10 +520,11 @@ void write_array_constant(FILE *file, options_t *options, size_t size)
 void write_byte(FILE *file, options_t *options, UCHAR value)
 {
     //Helper constants.
-    const char *value_fmt_str      = "\\x%02x, ";
-    const int   value_fmt_str_size = 6; //\xFF,[SPACE]
-    const int   columns_size       = 80;
-    const int   max_value_count    = ((columns_size - options->indent_size) / value_fmt_str_size);
+    static const char *value_fmt_str      = "'\\x%02x',";
+    static const int   value_fmt_str_size = 7; //'\xFF',[SPACE]
+    static const int   columns_size       = 80;
+    const int  max_value_count  = ((columns_size - options->indent_size)
+                                   / value_fmt_str_size);
 
     static int curr_value_count = 0; //Static to preserve the state between calls.
 

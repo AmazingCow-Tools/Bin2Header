@@ -1,0 +1,9 @@
+[version 0.0.2] - Apr 6, 2016
+    Fix a MAJOR BUG that are writing invalid C arrays by not enclosing
+    the values on single quotes.
+    Make some values on write_byte functio static.
+    Add the changelog entry for version 0.0.1
+
+[version 0.0.1] - Apr 4, 2016
+    Finish the basic implementation - Needs TEST.
+    Update the way of modify and print the version number.
