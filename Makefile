@@ -57,7 +57,7 @@ bin: clean stdcow
 
 
 install: bin
-	@ mv bin2header /usr/local/bin/bin2header
+	@ mv ./bin/bin2header /usr/local/bin/bin2header
 
 uninstall:
 	@ rm -f /usr/local/bin/bin2header
