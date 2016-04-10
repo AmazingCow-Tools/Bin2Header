@@ -387,14 +387,29 @@ const char *create_header_str(options_t *options)
 //Parse
 void parse_cmd_options(int argc, char *argv[], options_t *options)
 {
-    //h - help.
-    //v - version.
-    //V - verbose.
-    //a - array name.
-    //o - output file.
-    //b - block size.
-    //i - indent size.
+    // Short |        Long | Description
+    //-----------------------------------
+    //     h | help        | help.
+    //     v | version     | version.
+    //     V | verbose     | verbose.
+    //     a | array-name  | array name.
+    //     o | output      | output file.
+    //     b | block-size  | block size.
+    //     i | indent-size | indent size.
+
     const char *options_str = "hvVa:o:b:i:";
+
+    static struct option long_options[] = {
+           {"help",        no_argument,       NULL,  'h' },
+           {"version",     no_argument,       NULL,  'v' },
+           {"verbose",     no_argument,       NULL,  'V' },
+           {"array-name",  required_argument, NULL,  'a' },
+           {"output",      required_argument, NULL,  'o' },
+           {"block-size",  required_argument, NULL,  'b' },
+           {"indent-size", required_argument, NULL,  'i' },
+           {NULL,          NULL,              NULL, NULL }
+    };
+
 
     //Set the defaults.
     options->verbose     = false;
@@ -402,9 +417,18 @@ void parse_cmd_options(int argc, char *argv[], options_t *options)
     options->indent_size = 4;
 
     //Parse the options...
+    int  opt_index;
     char curr_opt;
-    while((curr_opt = getopt(argc, argv, options_str)) != -1)
+    while(true)
     {
+        curr_opt = getopt_long(argc, argv,
+                               options_str,
+                               long_options,
+                               &opt_index);
+        if(curr_opt == -1)
+            break;
+
+
         switch(curr_opt)
         {
             //Help and Version.
