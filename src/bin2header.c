@@ -56,6 +56,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 //stdcow
+#include "stdcow.h"
 #include "cowlog.h"
 #include "cowmalloc.h"
 #include "cowpath.h"
@@ -116,7 +117,6 @@ size_t get_file_size(FILE *file);
 
 //Parse
 void parse_cmd_options(int argc, char *argv[], options_t *options);
-bool b2h_atoi(const char *str, int *value_ptr);
 
 //Write
 void write_header             (FILE *file, options_t *options);
@@ -428,7 +428,6 @@ void parse_cmd_options(int argc, char *argv[], options_t *options)
         if(curr_opt == -1)
             break;
 
-
         switch(curr_opt)
         {
             //Help and Version.
@@ -440,17 +439,22 @@ void parse_cmd_options(int argc, char *argv[], options_t *options)
 
             //Block and Indent size.
             case 'b' :
-                if(!b2h_atoi(optarg, &options->block_size))
+                if(!cow_atoi_checked(optarg, &options->block_size))
                 {
-                    print_error("error while parsing -b flag - invalid number %s",
-                                optarg);
+                    print_error("error while parsing (%s) flag - invalid number: %s",
+                                "-b | --block-size", optarg);
+                }
+                if(options->block_size <= 0)
+                {
+                    print_error("error while parsing (%s) flag - block-size must be > 0",
+                                "-b | --block-size");
                 }
                 break;
             case 'i' :
-                if(!b2h_atoi(optarg, &options->indent_size))
+                if(!cow_atoi_checked(optarg, &options->indent_size))
                 {
-                     print_error("error while parsing -i flag - invalid number %s",
-                                 optarg);
+                     print_error("error while parsing (%s) flag - invalid number %s",
+                                 "-i | --indent-size", optarg);
                 }
                 break;
 
@@ -468,8 +472,7 @@ void parse_cmd_options(int argc, char *argv[], options_t *options)
 
             //Invalid options...
             default :
-                exit(1);
-                break;
+                print_help(1);
         }
     }
 
@@ -481,19 +484,6 @@ void parse_cmd_options(int argc, char *argv[], options_t *options)
     //Copy the in_filename from argv.
     options->in_filename = COW_MALLOC(sizeof(char) * strlen(argv[optind]));
     strcpy(options->in_filename, argv[optind]);
-}
-
-bool b2h_atoi(const char *str, int *value_ptr)
-{
-    int s = strlen(str);
-    for(int i = 0; i < s; ++i)
-    {
-        if(!isdigit(str[i]))
-            return false;
-    }
-
-    *value_ptr = atoi(str);
-    return true;
 }
 
 
