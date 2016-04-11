@@ -47,15 +47,29 @@ clean:
 stdcow:
 	@ cd ./lib/libstdcow && make clean && make obj
 
-bin: clean stdcow
+stdcow-debug:
+	@cd ./lib/libstdcow && make clean && make NDEBUG=-DDEBUG obj
+
+
+bin-debug: stdcow-debug
 	@ mkdir -p ./bin
 
 	@ gcc -g                           \
-	      -D NDEBUG                    \
+	      -DDEBUG                      \
+	      -o ./bin/bin2header-debug    \
+	      -I ./lib/libstdcow/include/  \
+	         ./src/bin2header.c        \
+	         ./lib/libstdcow/obj/*.o
+
+bin: stdcow
+	@ mkdir -p ./bin
+
+	@ gcc -D NDEBUG                    \
 	      -o ./bin/bin2header          \
 	      -I ./lib/libstdcow/include/  \
 	         ./src/bin2header.c        \
 	         ./lib/libstdcow/obj/*.o
+
 
 install: bin
 	@ sudo mv ./bin/bin2header /usr/local/bin/bin2header
