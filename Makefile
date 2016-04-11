@@ -39,7 +39,7 @@
 ##----------------------------------------------------------------------------##
 
 
-all: install
+all: bin
 
 clean:
 	@ rm -rf ./bin
@@ -49,12 +49,13 @@ stdcow:
 
 bin: clean stdcow
 	@ mkdir -p ./bin
-	@ gcc -o ./bin/bin2header         \
-	      -I ./lib/libstdcow/include/ \
-	         ./bin2header.c           \
+
+	@ gcc -g                           \
+	      -D NDEBUG                    \
+	      -o ./bin/bin2header          \
+	      -I ./lib/libstdcow/include/  \
+	         ./src/bin2header.c        \
 	         ./lib/libstdcow/obj/*.o
-
-
 
 install: bin
 	@ sudo mv ./bin/bin2header /usr/local/bin/bin2header
