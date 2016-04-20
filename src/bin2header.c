@@ -28,7 +28,7 @@
 //        *VERY* happy to see our work being used by other people. :)         //
 //        The email is: acknowledgment_opensource@AmazingCow.com              //
 //     3. Altered source versions must be plainly marked as such,             //
-//        and must notbe misrepresented as being the original software.       //
+//        and must not be misrepresented as being the original software.      //
 //     4. This notice may not be removed or altered from any source           //
 //        distribution.                                                       //
 //     5. Most important, you must have fun. ;)                               //
@@ -41,7 +41,6 @@
 //COWTODO: #1 - Add a option to specify the max columns to write \
 //              If we can write all bytes in only one line the file size is reduced.
 //COWTODO: #2 - The verbose mode is very nonsense today - Add more util output.
-//COWTODO: #3 - Use gnu getopt_long (This is the default in other AmazingCow programs).
 
 //std
 #include <ctype.h>
@@ -69,6 +68,7 @@
         { _code_ }              \
     }
 
+
 ////////////////////////////////////////////////////////////////////////////////
 // Constants                                                                  //
 ////////////////////////////////////////////////////////////////////////////////
@@ -76,6 +76,7 @@
 #define kVersion_Major    0
 #define kVersion_Minor    0
 #define kVersion_Revision 2
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Types                                                                      //
@@ -101,7 +102,7 @@ typedef struct _options_t
 ////////////////////////////////////////////////////////////////////////////////
 // Function Declarations                                                      //
 ////////////////////////////////////////////////////////////////////////////////
-//Options init/clean
+//Options init / clean
 void options_init    (options_t *options);
 void options_validate(options_t *options);
 void options_clean   (options_t *options);
@@ -141,12 +142,13 @@ int main(int argc, const char *argv[])
     options_validate(&options);
 
     ONLY_IN_VERBOSE(
-        COW_PRINT("verbose      : %d", options.verbose);
-        COW_PRINT("block size   : %d", options.block_size);
-        COW_PRINT("indent size  : %d", options.indent_size);
-        COW_PRINT("in filename  : %s", options.in_filename);
-        COW_PRINT("out filename : %s", options.out_filename);
-        COW_PRINT("array name   : %s", options.array_name);
+        COW_PRINT("Run info:");
+        COW_PRINT("  verbose      : %d", options.verbose);
+        COW_PRINT("  block size   : %d", options.block_size);
+        COW_PRINT("  indent size  : %d", options.indent_size);
+        COW_PRINT("  in filename  : %s", options.in_filename);
+        COW_PRINT("  out filename : %s", options.out_filename);
+        COW_PRINT("  array name   : %s", options.array_name);
     );
 
     //Init the input and output files...
@@ -177,7 +179,7 @@ int main(int argc, const char *argv[])
 
     //Read the binary file and write the info to header...
     size_t read_count = 0;
-    while((read_count = fread(buf, sizeof(unsigned char), options.block_size, fin)) > 0)
+    while((read_count = fread(buf, sizeof(UCHAR), options.block_size, fin)) > 0)
     {
         for(int i = 0; i < read_count; ++i)
             write_byte(fout, &options, buf[i]);
@@ -254,6 +256,12 @@ void options_validate(options_t *options)
                     options->out_filename);
     }
 
+    /* Get the full path for the output */
+    char *out_fullpath_tmp = cow_path_canonizepath(options->out_filename);
+    COW_FREE_NULL(options->out_filename); /* Free the previous buffer */
+    options->out_filename = strdup(out_fullpath_tmp);
+    COW_FREE_NULL(out_fullpath_tmp); /* Free the temp buffer */
+
 
     //User didn't pass the array name
     //So copy the output filename and gets only the filename part.
@@ -281,8 +289,7 @@ void options_validate(options_t *options)
     for(int i = 0; i < strlen(options->array_name); ++i)
     {
         char c = options->array_name[i];
-        //COWTODO: Add the other chars...
-        if(c == '.')
+        if(c != '_' && !isalnum(c))
             options->array_name[i] = '_';
     }
 }
@@ -431,7 +438,7 @@ void parse_cmd_options(int argc, char *argv[], options_t *options)
         switch(curr_opt)
         {
             //Help and Version.
-            case 'h': print_help(0);    break;
+            case 'h': print_help   (0); break;
             case 'v': print_version(0); break;
 
             //Verbose.
