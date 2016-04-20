@@ -275,8 +275,7 @@ void options_validate(options_t *options)
         cow_path_split(options->out_filename, &head, &tail);
         cow_path_splitext(tail, &root, &ext);
 
-        options->array_name = COW_MALLOC(sizeof(char) * strlen(root) + 1);
-        strcpy(options->array_name, root);
+        options->array_name = strdup(root);
 
         COW_SAFE_FREE_NULL(head);
         COW_SAFE_FREE_NULL(tail);
@@ -466,16 +465,8 @@ void parse_cmd_options(int argc, char *argv[], options_t *options)
                 break;
 
             //Array and Output names.
-            case 'a' :
-                options->array_name = COW_MALLOC(sizeof(char) * strlen(optarg));
-                strcpy(options->array_name, optarg);
-                break;
-
-            case 'o' :
-                //Copy the out_filename from getopt's optarg.
-                options->out_filename = COW_MALLOC(sizeof(char) * strlen(optarg));
-                strcpy(options->out_filename, optarg);
-                break;
+            case 'a' : options->array_name   = strdup(optarg); break;
+            case 'o' : options->out_filename = strdup(optarg); break;
 
             //Invalid options...
             default :
@@ -489,8 +480,7 @@ void parse_cmd_options(int argc, char *argv[], options_t *options)
 
     //Set the input filename.
     //Copy the in_filename from argv.
-    options->in_filename = COW_MALLOC(sizeof(char) * strlen(argv[optind]));
-    strcpy(options->in_filename, argv[optind]);
+    options->in_filename = strdup(argv[optind]);
 }
 
 
