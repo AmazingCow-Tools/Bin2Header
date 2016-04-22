@@ -1,3 +1,40 @@
++------------------------------------------------------------------------------+
+| Version 0.1.x                                                                |
++------------------------------------------------------------------------------+
+[version 0.1.0] - Apr 22, 2016
+-- General --
+    - Now bin2header is aware of relative filenames.
+    - bin2header can fix the invalid chars in C array name.
+    - Write the README.
+    - Help screen is revised.
+
+-- Source --
+    bin2header.c
+    - Change the malloc+strcpy to strdup - clean code.
+    - Fix the license header.
+    - Remove the cowtodo.
+    - Some cosmetic changes.
+    - Change the unsigned char to UCHAR (clean code).
+    - Make the out filename aware of relative paths.
+    - Make the clean array name aware of all impossible chars.
+    - Put the source into a folder.
+    - Rewrite the help screen.
+
+-- Info Files --
+    README.md
+    - Write the README.
+
+    CHANGELOG.txt
+    - Add separators between the versions.
+
+    Makefile
+    - Update the makefile.
+      Make the sudo needed only on install/uninstall parts.
+
+
++------------------------------------------------------------------------------+
+| Version 0.0.x                                                                |
++------------------------------------------------------------------------------+
 [version 0.0.2] - Apr 6, 2016
     Fix a MAJOR BUG that are writing invalid C arrays by not enclosing
     the values on single quotes.
