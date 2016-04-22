@@ -304,20 +304,26 @@ void options_clean(options_t *options)
 //Prints
 void print_help(int exit_code)
 {
-    printf("Usage: \n \
-  bin2header [-hv] [-V] [-ib <size>] [-a <name>] [-o <filename>] <input-filename> \n\
+    printf("Usage:   \n \
+  bin2header -h | -v \n \
+  bin2header [-V] [-ib <size>] [-a <name>] [-o <filename>] <input-filename> \n\
 \n\
 Options: \n\
-  *-h            : Show this screen. \n\
-  *-v            : Show app version and copyright. \n\
-   -V            : Enable Verbose mode. \n\
-   -i <size>     : Indentation in spaces. \n\
-   -b <size>     : How many block will be read each time. \n\
-                   Greater block size increases speed in expense of memory. \n\
-   -a <name>     : The name of resulting array. \n\
-                   If not set will be the same of output filename. \n\
-   -o <filename> : The name of output file. \n\
-                   If not set will be the same of input filename with the '.h' extension. \n\
+  *-h --help    : Show this screen. \n\
+  *-v --version : Show app version and copyright. \n\
+\n\
+   -V -verbose : Enable Verbose mode. \n\
+\n\
+   -i --indent-size <size> : Indentation in spaces. \n\
+   -b --block-size  <size> : How many block will be read each time. \n\
+                             Greater block size increases speed in \n\
+                             expense of memory. \n\
+\n\
+   -a --array-name <name> : The name of resulting array. \n\
+                            If not set will be the same of output filename. \n\
+   -o --output <filename> : The name of output file. \n\
+                            If not set will be the same of input filename  \n\
+                            with the '.h' extension. \n\
 \n\
 Notes:\n\
   In (-a <name>) all characters that doesn't make a valid C identifier will \n\
@@ -413,7 +419,7 @@ void parse_cmd_options(int argc, char *argv[], options_t *options)
            {"output",      required_argument, NULL,  'o' },
            {"block-size",  required_argument, NULL,  'b' },
            {"indent-size", required_argument, NULL,  'i' },
-           {NULL,          NULL,              NULL, NULL }
+           {0,             0,                 0,      0  }
     };
 
 
